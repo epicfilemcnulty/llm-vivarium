@@ -1,0 +1,88 @@
+import torch
+import yaml
+import os
+import argparse
+import transformers
+import bitsandbytes as bnb
+from tqdm import tqdm
+from transformers import MambaConfig, MambaForCausalLM
+from bltzr import SqlDataModule, SqlDatasetConfig, SqlDataset, Tokenizer
+from transformers import TrainingArguments, Trainer
+from transformers.optimization import get_cosine_schedule_with_warmup
+
+def read_yaml_file(file_path):
+    with open(file_path, 'r') as file:
+        try:
+            data = yaml.safe_load(file)
+            return data
+        except yaml.YAMLError as e:
+            print(f"Error reading YAML file: {e}")
+
+def run(args):
+    
+    config = read_yaml_file(args.config_path)
+    tokenizer = Tokenizer()
+    if "base_model" in config:
+        model_dir = config["base_model"]
+        model = MambaForCausalLM.from_pretrained(model_dir, device="cuda", dtype=torch.bfloat16)
+    else:
+        model_config = MambaConfig(
+          hidden_size =config["d_model"],
+          num_hidden_layers=config["n_layer"],
+          vocab_size=len(tokenizer.vocab),
+          torch_dtype=torch.bfloat16,
+        )
+        model = MambaForCausalLM(config=model_config)
+
+    data_config = SqlDatasetConfig(db_host=args.host, db_user=args.user, db_name=args.database, dataset_table=args.dataset, window_size=config["chunk_size"])
+    train_data = SqlDataModule(data_config)
+    output_dir = "trainees/" + config["model_name"]
+
+    if "optimizer" in config and config["optimizer"] == 'full':
+        optimizer  = torch.optim.AdamW(model.parameters(), lr=config["learning_rate"], betas=(0.9, 0.95))
+    else:
+        optimizer = bnb.optim.AdamW8bit(model.parameters(), lr=config["learning_rate"], betas=(0.9, 0.95))
+
+    lr_scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=config["warmup_steps"], num_training_steps=len(train_data.dataset))
+
+    trainer = Trainer(
+        model=model,
+        train_dataset=train_data.dataset,
+        data_collator=train_data.data_collator,
+        optimizers=(optimizer, lr_scheduler),
+        args=TrainingArguments(
+            learning_rate=config["learning_rate"],
+            per_device_train_batch_size=config["batch_size"],
+            gradient_accumulation_steps=config["gradient_accumulation_steps"],
+            max_grad_norm = config["max_grad_norm"],
+            max_steps = config["max_steps"],
+            num_train_epochs=config["num_train_epochs"],
+            save_steps = config["save_steps"],
+            save_total_limit = config["save_total_limit"],
+            logging_steps=config["logging_steps"],
+            bf16 = True,
+            tf32 = True,
+            seed=args.seed,
+            output_dir=output_dir,
+        ),
+    )
+    trainer.train(resume_from_checkpoint=args.checkpoint)
+    trainer.save_model(output_dir)
+
+
+if __name__ == "__main__":
+
+    db_host = os.environ.get('LLM_TRAIN_DB_HOST')
+    if db_host is None:
+        db_host = "127.0.0.1"
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", help="Path to the config YAML file")
+    parser.add_argument("-c", "--checkpoint", type=str, default=None, required=False)
+    parser.add_argument("-s", "--seed", type=int, default=42, required=False)
+    parser.add_argument('-d', '--database', required=False, default=os.environ.get('LLM_TRAIN_DB'), type=str, help="Database name")
+    parser.add_argument('-t', '--dataset', required=False, default='train_dataset', type=str, help="Dataset table name")
+    parser.add_argument('-u', '--user', required=False, default=os.environ.get('LLM_TRAIN_DB_USER'), type=str, help="Database user name")
+    parser.add_argument('--host', required=False, default=db_host, type=str, help="Database host")
+    args = parser.parse_args()
+    run(args)
