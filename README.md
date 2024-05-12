@@ -1,11 +1,13 @@
-# Mamba Vivarium
+# LLM Vivarium
 
-Scripts & configs to train Mamba models and run inference. 
-Depend on the [mamba_byte_toolkit](https://github.com/epicfilemcnulty/mamba_byte_toolkit) package.
+Scripts & configuration files to train Mamba models with byte-level tokenizer.
+Requires [bltzr](https://pypi.org/project/bltzr/) package, which
+provides the byte-level tokenizer and `SqlDataset` class for working
+with datasets in a PostgreSQL database.
 
 ## Training
 
-The dataset class from `mamba_byte_toolkit` assumes that you have your data in a PostgreSQL database.
+The `SqlDataset` class from the `bltzr` package assumes that you have your training data in a PostgreSQL database.
 It requires a dataset table as an argument. This table should be defined as follows:
 
 ```sql
@@ -28,7 +30,7 @@ have fields `len` (integer) and `chat` (JSONB). The chat field should store a ch
    {"kind": "spt", "token": "</SYS>"},
    {"kind": "spt", "token": "<QUERY>", "content": "Hey, how are you?"},
    {"kind": "spt", "token": "</QUERY>"}, 
-   {"kind": "spt", "token": "<REPLY>" "content": "Not bad, what about you?"}, 
+   {"kind": "spt", "token": "<REPLY>", "content": "Not bad, what about you?"}, 
    {"kind": "spt", "token": "</REPLY>"}, 
    {"kind": "spt", "token": "</CHAT>"}, 
 ]
