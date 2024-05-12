@@ -5,30 +5,10 @@ import argparse
 import transformers
 import bitsandbytes as bnb
 from tqdm import tqdm
+from transformers import MambaConfig, MambaForCausalLM, AutoModelForCausalLM
+from bltzr import SqlDataModule, SqlDatasetConfig, SqlDataset, Tokenizer
 from transformers import TrainingArguments, Trainer
 from transformers.optimization import get_cosine_schedule_with_warmup
-from mamba_ssm.models.mixer_seq_simple import MambaLMHeadModel, MambaConfig
-from bltzr import SqlDataModule, SqlDatasetConfig, SqlDataset, Tokenizer
-
-class MambaTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        input_ids = inputs.pop("input_ids")
-        lm_logits = model(input_ids).logits
- 
-        labels = input_ids.to(lm_logits.device)
-        shift_logits = lm_logits[:, :-1, :].contiguous()
-        labels = labels[:, 1:].contiguous()
- 
-        loss_fct = torch.nn.CrossEntropyLoss()
-        lm_loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), labels.view(-1))
- 
-        return lm_loss
- 
-    def save_model(self, output_dir, _internal_call=None):
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        torch.save(self.model.state_dict(), f"{output_dir}/pytorch_model.bin")
-
 
 def read_yaml_file(file_path):
     with open(file_path, 'r') as file:
@@ -39,18 +19,20 @@ def read_yaml_file(file_path):
             print(f"Error reading YAML file: {e}")
 
 def run(args):
+    
     config = read_yaml_file(args.config_path)
     tokenizer = Tokenizer()
     if "base_model" in config:
         model_dir = config["base_model"]
-        model = MambaLMHeadModel.from_pretrained(model_dir, device="cuda", dtype=torch.bfloat16)
+        model = MambaForCausalLM.from_pretrained(model_dir, torch_dtype=torch.bfloat16).to('cuda')
     else:
         model_config = MambaConfig(
-          d_model=config["d_model"],
-          n_layer=config["n_layer"],
+          hidden_size =config["d_model"],
+          num_hidden_layers=config["n_layer"],
           vocab_size=len(tokenizer.vocab),
+          torch_dtype=torch.bfloat16,
         )
-        model = MambaLMHeadModel(config=model_config, device="cuda", dtype=torch.bfloat16)
+        model = MambaForCausalLM(config=model_config)
 
     data_config = SqlDatasetConfig(db_host=args.host, db_user=args.user, db_name=args.database, dataset_table=args.dataset, window_size=config["chunk_size"])
     train_data = SqlDataModule(data_config)
@@ -63,7 +45,7 @@ def run(args):
 
     lr_scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=config["warmup_steps"], num_training_steps=len(train_data.dataset))
 
-    trainer = MambaTrainer(
+    trainer = Trainer(
         model=model,
         train_dataset=train_data.dataset,
         data_collator=train_data.data_collator,

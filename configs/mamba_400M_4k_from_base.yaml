@@ -1,9 +1,9 @@
-base_model: /storage/models/MBB/base
-model_name: base_400M_256
+base_model: /storage/models/MBB/base_400M_256
+model_name: phase_0_400M_4k
 n_layer: 64
 d_model: 1024
-chunk_size: 256
-batch_size: 62
+chunk_size: 4096
+batch_size: 3
 gradient_accumulation_steps: 1
 max_grad_norm: 0.1
 max_steps: -1
