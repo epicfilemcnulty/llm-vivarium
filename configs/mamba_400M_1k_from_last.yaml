@@ -1,0 +1,15 @@
+base_model: /storage/models/MBB/phase_0_400M_1k
+model_name: phase_0_400M_1k
+n_layer: 64
+d_model: 1024
+chunk_size: 1024
+batch_size: 16
+gradient_accumulation_steps: 1
+max_grad_norm: 0.1
+max_steps: -1
+num_train_epochs: 1
+logging_steps: 25
+warmup_steps: 300
+save_steps: 1500
+save_total_limit: 15
+learning_rate: 0.0005
