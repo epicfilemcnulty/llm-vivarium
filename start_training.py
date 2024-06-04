@@ -49,6 +49,9 @@ def run(args):
           d_model=config["d_model"],
           n_layer=config["n_layer"],
           vocab_size=len(tokenizer.vocab),
+          ssm_cfg=config["ssm_cfg"],
+          attn_layer_idx=config["attn_layer_idx"],
+          attn_cfg=config["attn_cfg"],
         )
         model = MambaLMHeadModel(config=model_config, device="cuda", dtype=torch.bfloat16)
 
