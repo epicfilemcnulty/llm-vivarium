@@ -1,5 +1,5 @@
-base_model: /storage/models/MBB/wip
-model_name: base_780M_phase_1
+base_model: /storage/models/MBB/170MB_on_bdataset_780M_2k
+model_name: 780M_phase_0
 n_layer: 48
 d_model: 1536
 ssm_cfg:
