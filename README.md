@@ -1,6 +1,6 @@
 # LLM Vivarium
 
-Scripts & configuration files to train Mamba models with byte-level tokenizer.
+Scripts & configuration files to train Mamba & Mamba2 models with byte-level tokenizer.
 Requires [bltzr](https://pypi.org/project/bltzr/) package, which
 provides the byte-level tokenizer and `SqlDataset` class for working
 with datasets in a PostgreSQL database.
@@ -10,7 +10,7 @@ You should also have [mamba-ssm](https://github.com/state-spaces/mamba) package 
 ## Training
 
 The `SqlDataset` class from the `bltzr` package assumes that you have your training data in a PostgreSQL database.
-It requires a dataset table as an argument. This table should be defined as follows:
+It requires a dataset table as an argument. This table should have the following schema:
 
 ```sql
 CREATE TABLE IF NOT EXISTS dataset (
@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS dataset (
 ```
 
 The `tbl` field should be a name of a table, and the `ref_id` should be the id of the row in that table.
-The row should have a `content` text field, storing the actual textual/binary content of your dataset. 
+The row should have a `content` text/binary field, storing the actual textual/binary content of your dataset. 
 
-You should also have two functions defined in your database, which are used to get dataset items
-and their length. For example:
+You should also have two functions defined in your database, `get_dataset_item` and `get_dataset_item_len`,
+which are used to get dataset items and their length (duh!). For example:
 
 ```sql
 CREATE OR REPLACE FUNCTION get_dataset_item_len(tbl TEXT, ref_id BIGINT, metadata BOOL)
@@ -66,3 +66,4 @@ AS $$
     return msgs
 $$ LANGUAGE pllua;
 ```
+
