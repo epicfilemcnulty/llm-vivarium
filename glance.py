@@ -29,7 +29,7 @@ if __name__ == "__main__":
     for i in range(args.count):
         if args.start + i < len(dataset):
             print(f'-{i}------')
-            print(tokenizer.decode(dataset[args.start + i]['input_ids']).replace("<PAD>", "…"))
+            print(tokenizer.decode(dataset[args.start + i]['input_ids']))
             print(f'------{i}-')
         else:
             print(f'{args.start + i} index is greater than dataset length')
