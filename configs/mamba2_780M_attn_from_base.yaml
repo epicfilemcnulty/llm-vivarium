@@ -1,5 +1,5 @@
-base_model: /storage/models/MBB/170MB_on_bdataset_780M_2k
-model_name: 780M_phase_0
+base_model: /storage/models/MBB/wip
+model_name: 780M_2k_001
 n_layer: 48
 d_model: 1536
 ssm_cfg:
@@ -21,6 +21,6 @@ max_steps: -1
 num_train_epochs: 1
 logging_steps: 25
 warmup_steps: 250
-save_steps: 500
+save_steps: 300
 save_total_limit: 7
 learning_rate: 0.00035

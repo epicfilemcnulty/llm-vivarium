@@ -13,13 +13,13 @@ attn_cfg:
   qkv_proj_bias: false
   rotary_emb_dim: 64
 chunk_size: 256
-batch_size: 44
+batch_size: 40
 gradient_accumulation_steps: 1
 max_grad_norm: 0.3
 max_steps: -1
 num_train_epochs: 1
 logging_steps: 25
 warmup_steps: 500
-save_steps: 1000
+save_steps: 500
 save_total_limit: 7
 learning_rate: 0.00035
