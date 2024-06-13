@@ -5,6 +5,8 @@ Requires [bltzr](https://pypi.org/project/bltzr/) package, which
 provides the byte-level tokenizer and `SqlDataset` class for working
 with datasets in a PostgreSQL database.
 
+You should also have [mamba-ssm](https://github.com/state-spaces/mamba) package installed.
+
 ## Training
 
 The `SqlDataset` class from the `bltzr` package assumes that you have your training data in a PostgreSQL database.
