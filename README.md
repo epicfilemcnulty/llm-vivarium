@@ -19,21 +19,48 @@ CREATE TABLE IF NOT EXISTS dataset (
 ```
 
 The `tbl` field should be a name of a table, and the `ref_id` should be the id of the row in that table.
-The row should have a `content` text field, storing the actual textual content of your dataset. That's pretty 
-much it, with one exception -- if `tbl` field value is `chats`, we assume that this is a special table which must
-have fields `len` (integer) and `chat` (JSONB). The chat field should store a chat in the following JSON format:
+The row should have a `content` text field, storing the actual textual/binary content of your dataset. 
 
-```JSON
-[
-   {"kind": "spt", "token": "<CHAT>"}, 
-   {"kind": "spt", "token": "<SYS>", "content": "You are an AI assistant"},
-   {"kind": "spt", "token": "</SYS>"},
-   {"kind": "spt", "token": "<QUERY>", "content": "Hey, how are you?"},
-   {"kind": "spt", "token": "</QUERY>"}, 
-   {"kind": "spt", "token": "<REPLY>", "content": "Not bad, what about you?"}, 
-   {"kind": "spt", "token": "</REPLY>"}, 
-   {"kind": "spt", "token": "</CHAT>"}, 
-]
+You should also have two functions defined in your database, which are used to get dataset items
+and their length. For example:
+
+```sql
+CREATE OR REPLACE FUNCTION get_dataset_item_len(tbl TEXT, ref_id BIGINT, metadata BOOL)
+RETURNS INTEGER
+AS $$
+    local metadata = metadata or false
+    local query = "SELECT octet_length(content) as len FROM " .. tbl .. " WHERE id = " .. ref_id .. ";"
+    local res = spi.execute(query)
+    local len = res[1].len or 0
+    if metadata then
+        if tbl:match("^wiki") then
+            len = len + 21 -- <META> + {"src":"wikipedia"} + </META>
+        end
+        if tbl == "rfc" then
+            len = len + 15 -- <META> + {"src":"RFC"} + </META>
+        end
+    end
+    return len + 2 -- Two embracing special tokens
+$$ LANGUAGE pllua;
+ 
+CREATE OR REPLACE FUNCTION get_dataset_item(tbl TEXT, ref_id BIGINT, metadata BOOL)
+RETURNS JSONB 
+AS $$
+    local metadata = metadata or false
+    local query = "SELECT content FROM " .. tbl .. " WHERE id = " .. ref_id .. ";"
+    local res = spi.execute(query)
+    local content = res[1].content
+    local meta
+    if metadata then
+        local src = "wikipedia"
+        if tbl == "rfc" then
+            src = "RFC"
+        end
+        meta = '{"src":"' .. src .. '"}'
+    end
+    local msgs = {
+        { kind = "txt", content = content, meta = meta }
+    }
+    return msgs
+$$ LANGUAGE pllua;
 ```
-
-And the `len` field should have the sum of lengths (in bytes) of every `content` field in the JSON array + 1 byte for every special token.
