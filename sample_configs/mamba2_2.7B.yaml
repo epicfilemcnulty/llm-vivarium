@@ -1,0 +1,17 @@
+model_name: mamba2_2.7B
+n_layer: 64
+d_model: 2560
+ssm_cfg:
+  layer: Mamba2
+chunk_size: 256
+batch_size: 8
+dataset_table: dataset
+gradient_accumulation_steps: 1
+max_grad_norm: 0.3
+max_steps: -1
+num_train_epochs: 1
+logging_steps: 25
+warmup_steps: 300
+save_steps: 1000
+save_total_limit: 3
+learning_rate: 0.005
