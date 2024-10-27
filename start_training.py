@@ -11,7 +11,7 @@ from mamba_ssm.models.mixer_seq_simple import MambaLMHeadModel, MambaConfig
 from bltzr import SqlDataModule, SqlDatasetConfig, SqlDataset, Tokenizer
 
 class MambaTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
+    def compute_loss(self, model, inputs, num_items_in_batch):
         input_ids = inputs.pop("input_ids")
         lm_logits = model(input_ids).logits
  
@@ -67,8 +67,7 @@ def run(args):
         db_host=args.host, db_pass=args.password, db_user=args.user, 
         db_name=args.database, dataset_table=config["dataset_table"], 
         window_size=config["chunk_size"], 
-        with_metadata=bool(os.environ.get('LLM_TRAIN_WITH_METADATA')), 
-        batch_size=args.batch)
+        with_metadata=args.metadata)
     train_data = SqlDataModule(data_config)
     output_dir = "trainees/" + config["model_name"]
 
@@ -109,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("config_path", help="Path to the config YAML file")
     parser.add_argument("-c", "--checkpoint", type=str, default=None, required=False)
     parser.add_argument("-s", "--seed", type=int, default=42, required=False)
+    parser.add_argument("-m", "--metadata", type=bool, default=False, required=False)
     parser.add_argument("-b", "--batch", type=int, default=100, required=False)
     parser.add_argument('-d', '--database', required=False, default=os.environ.get('LLM_TRAIN_DB'), type=str, help="Database name")
     parser.add_argument('-u', '--user', required=False, default=os.environ.get('LLM_TRAIN_DB_USER'), type=str, help="Database user name")

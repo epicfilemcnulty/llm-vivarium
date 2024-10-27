@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
 
     tokenizer = Tokenizer()
-    data_config = SqlDatasetConfig(db_host=env_host, db_pass=env_pass, db_user=env_user, db_name=env_db, dataset_table=args.dataset, window_size=args.chunk, with_metadata=args.metadata, batch_size=args.batch)
+    data_config = SqlDatasetConfig(db_host=env_host, db_pass=env_pass, db_user=env_user, db_name=env_db, dataset_table=args.dataset, window_size=args.chunk, with_metadata=args.metadata, cache_batch_size=args.batch)
     dataset = SqlDataset(data_config)
     print(f'Dataset len is {len(dataset)}')
 
